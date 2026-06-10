@@ -84,5 +84,5 @@ export default function Home() {
           value={palavra}
           onChange={e => setPalavra(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && explorar(palavra)}
-          placeholder="Ex: calor, silêncio, velocidade, traição..."
+         placeholder="Ex: calor, silencio, velocidade, amor..."
           style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', border: '1px solid #222', background: '#141414
