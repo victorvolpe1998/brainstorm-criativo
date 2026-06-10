@@ -1,60 +1,20 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { palavra } = req.body;
-
-  const prompt = `Voce e um diretor de criacao senior de uma agencia de publicidade.
-
-Para a palavra ou conceito: "${palavra}"
-
-Gere entre 8 e 12 itens criativos que ajudem a construir uma campanha publicitaria em cima desse conceito. Misture:
-- 4 a 6 palavras soltas com potencial visual ou emocional forte (ex: "abandono", "pulso", "rastro")
-- 4 a 6 pequenas frases que sejam territorios criativos, nao citacoes filosoficas (ex: "o que fica depois que a festa acaba", "velocidade que parece calma", "quando o produto some mas a sensacao fica")
-
-Regras importantes:
-- Tudo deve ter conexao real com "${palavra}" e potencial de virar conceito de campanha
-- Evite citacoes de filosofos, referencias academicas ou metaforas muito abstratas
-- Prefira o concreto, o sensorial, o humano, o cotidiano
-- Pense em territorios que uma marca poderia ocupar, nao em poesia
-
-Tambem gere 8 cases reais de campanhas publicitarias que trabalham com "${palavra}" ou territorios proximos. Priorize cases premiados em Cannes, Clio, D&AD ou grandes cases brasileiros. Para cada case inclua uma URL real (YouTube, Vimeo, Ads of the World ou site da agencia).
-
-Responda SOMENTE em JSON valido, sem markdown:
-{
-  "palavras": ["item1","item2","item3","item4","item5","item6","item7","item8","item9","item10"],
-  "cases": [
-    {"marca":"Nome","campanha":"Nome da Campanha (Ano)","insight":"Por que esse case e relevante para o territorio de ${palavra} e o que ele fez de diferente.","url":"https://..."},
-    {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
-    {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
-    {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
-    {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
-    {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
-    {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
-    {"marca":"...","campanha":"...","insight":"...","url":"https://..."}
-  ]
-}`;
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    const texto = data.content[0].text;
-    const limpo = texto.replace(/```json|```/g, '').trim();
-    const resultado = JSON.parse(limpo);
-    res.status(200).json(resultado);
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro ao gerar', palavras: [], cases: [] });
-  }
-}
+{aberto && (
+                    <div style={{ padding: '0 14px 14px' }}>
+                      <div style={{ height: '1px', background: 'linear-gradient(to right, #C8FF0030, transparent)', marginBottom: '12px' }} />
+                      <p style={{ fontSize: '12px', color: '#ffffffaa', lineHeight: '1.75', margin: '0 0 14px' }}>{c.insight}</p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={function() { window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(c.buscaYoutube || c.marca + ' ' + c.campanha), '_blank'); }}
+                          onMouseEnter={function(e) { e.currentTarget.style.background = '#C8FF00'; e.currentTarget.style.color = '#000'; }}
+                          onMouseLeave={function(e) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#C8FF00'; }}
+                          style={{ flex: 1, padding: '7px 10px', borderRadius: '8px', background: 'transparent', border: '1px solid #C8FF00', color: '#C8FF00', cursor: 'pointer', fontSize: '11px', fontWeight: '700', fontFamily: 'inherit', transition: 'all 0.15s', textAlign: 'center' }}>
+                          YouTube ↗
+                        </button>
+                        <button onClick={function() { window.open('https://www.google.com/search?q=' + encodeURIComponent(c.buscaGoogle || c.marca + ' ' + c.campanha), '_blank'); }}
+                          onMouseEnter={function(e) { e.currentTarget.style.background = '#ffffff15'; e.currentTarget.style.color = '#fff'; }}
+                          onMouseLeave={function(e) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ffffff50'; }}
+                          style={{ flex: 1, padding: '7px 10px', borderRadius: '8px', background: 'transparent', border: '1px solid #ffffff20', color: '#ffffff50', cursor: 'pointer', fontSize: '11px', fontWeight: '700', fontFamily: 'inherit', transition: 'all 0.15s', textAlign: 'center' }}>
+                          Google ↗
+                        </button>
+                      </div>
+                    </div>
+                  )}
