@@ -3,23 +3,27 @@ export default async function handler(req, res) {
 
   const { palavra } = req.body;
 
-  const prompt = `Voce e um assistente criativo para um diretor de criacao de uma agencia de publicidade de games.
+  const prompt = `Voce e um diretor de criacao senior de uma agencia de publicidade.
 
-Para a palavra/conceito: "${palavra}"
+Para a palavra ou conceito: "${palavra}"
 
-Gere exatamente 12 itens criativos. Misture:
-- Palavras soltas (ex: "suor", "ancestral")
-- Pequenas frases ou conceitos (ex: "o corpo que nao mente", "silencio antes do grito")
-- Referencias culturais inesperadas (ex: "Kubrick filmaria isso", "rituais de passagem")
-- Pelo menos 4 conexoes completamente fora do obvio que provoquem insights genuinos
+Gere entre 8 e 12 itens criativos que ajudem a construir uma campanha publicitaria em cima desse conceito. Misture:
+- 4 a 6 palavras soltas com potencial visual ou emocional forte (ex: "abandono", "pulso", "rastro")
+- 4 a 6 pequenas frases que sejam territorios criativos, nao citacoes filosoficas (ex: "o que fica depois que a festa acaba", "velocidade que parece calma", "quando o produto some mas a sensacao fica")
 
-Tambem gere 8 cases reais de campanhas publicitarias que trabalharam criativamente com "${palavra}" ou conceitos proximos. Para cada case inclua uma URL real onde o trabalho pode ser visto (YouTube, site da agencia, Ads of the World, Cannes Lions, etc).
+Regras importantes:
+- Tudo deve ter conexao real com "${palavra}" e potencial de virar conceito de campanha
+- Evite citacoes de filosofos, referencias academicas ou metaforas muito abstratas
+- Prefira o concreto, o sensorial, o humano, o cotidiano
+- Pense em territorios que uma marca poderia ocupar, nao em poesia
+
+Tambem gere 8 cases reais de campanhas publicitarias que trabalham com "${palavra}" ou territorios proximos. Priorize cases premiados em Cannes, Clio, D&AD ou grandes cases brasileiros. Para cada case inclua uma URL real (YouTube, Vimeo, Ads of the World ou site da agencia).
 
 Responda SOMENTE em JSON valido, sem markdown:
 {
-  "palavras": ["item1","item2","item3","item4","item5","item6","item7","item8","item9","item10","item11","item12"],
+  "palavras": ["item1","item2","item3","item4","item5","item6","item7","item8","item9","item10"],
   "cases": [
-    {"marca":"Nome da Marca","campanha":"Nome da Campanha (Ano)","insight":"Duas frases sobre o que torna esse case relevante e por que e uma referencia criativa.","url":"https://..."},
+    {"marca":"Nome","campanha":"Nome da Campanha (Ano)","insight":"Por que esse case e relevante para o territorio de ${palavra} e o que ele fez de diferente.","url":"https://..."},
     {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
     {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
     {"marca":"...","campanha":"...","insight":"...","url":"https://..."},
