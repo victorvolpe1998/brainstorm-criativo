@@ -7,62 +7,71 @@ export default function Mapa() {
   const [nos, setNos] = useState([]);
   const [centro, setCentro] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const [historico, setHistorico] = useState([]);
+  const [trilha, setTrilha] = useState([]);
   const [cases, setCases] = useState([]);
   const [caseAtivo, setCaseAtivo] = useState(null);
   const [modoArquivo, setModoArquivo] = useState(false);
   const [palavra, setPalavra] = useState('');
   const [arquivo, setArquivo] = useState(null);
+  const [animando, setAnimando] = useState(false);
   const inputRef = useRef();
 
   useEffect(function() {
     const termo = router.query.q;
-    if (termo) {
-      setPalavra(termo);
-      explorar(termo);
-    }
+    if (termo) { setPalavra(termo); explorar(termo, []); }
   }, [router.query.q]);
 
-  async function explorar(termo) {
+  async function explorar(termo, trilhaAtual) {
     if (!termo) return;
-    setCarregando(true);
-    setCentro(termo);
-    setNos([]);
-    setCases([]);
-    setCaseAtivo(null);
-    setModoArquivo(false);
-    setHistorico(function(h) { return [...h.filter(function(x) { return x !== termo; }), termo].slice(-8); });
-    const res = await fetch('/api/gerar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ palavra: termo })
-    });
-    const data = await res.json();
-    setNos(data.palavras || []);
-    setCases(data.cases || []);
-    setCarregando(false);
+    setAnimando(true);
+    setTimeout(async function() {
+      setCarregando(true);
+      setNos([]);
+      setCases([]);
+      setCaseAtivo(null);
+      setModoArquivo(false);
+      setCentro(termo);
+      const novaTrilha = trilhaAtual !== undefined ? trilhaAtual : trilha;
+      setTrilha(function(t) {
+        const base = trilhaAtual !== undefined ? trilhaAtual : t;
+        if (base[base.length - 1] === termo) return base;
+        return [...base, termo].slice(-8);
+      });
+      setAnimando(false);
+      const res = await fetch('/api/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ palavra: termo })
+      });
+      const data = await res.json();
+      setNos(data.palavras || []);
+      setCases(data.cases || []);
+      setCarregando(false);
+    }, 200);
   }
 
   async function explorarArquivo(file) {
     if (!file) return;
-    setCarregando(true);
-    setNos([]);
-    setCases([]);
-    setCaseAtivo(null);
-    setModoArquivo(true);
-    setCentro('Analisando briefing...');
-    const formData = new FormData();
-    formData.append('arquivo', file);
-    const res = await fetch('/api/briefing', {
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
-    setCentro(data.tema || 'Briefing');
-    setNos(data.palavras || []);
-    setCases(data.cases || []);
-    setHistorico(function(h) { return [...h.filter(function(x) { return x !== data.tema; }), data.tema].slice(-8); });
-    setCarregando(false);
+    setAnimando(true);
+    setTimeout(async function() {
+      setCarregando(true);
+      setNos([]);
+      setCases([]);
+      setCaseAtivo(null);
+      setModoArquivo(true);
+      setCentro('Analisando...');
+      setAnimando(false);
+      const formData = new FormData();
+      formData.append('arquivo', file);
+      const res = await fetch('/api/briefing', { method: 'POST', body: formData });
+      const data = await res.json();
+      const tema = data.tema || 'Briefing';
+      setCentro(tema);
+      setNos(data.palavras || []);
+      setCases(data.cases || []);
+      setTrilha(function(t) { return [...t, tema].slice(-8); });
+      setCarregando(false);
+    }, 200);
   }
 
   function onArquivo(e) {
@@ -70,6 +79,14 @@ export default function Mapa() {
     if (!file) return;
     setArquivo(file);
     explorarArquivo(file);
+  }
+
+  function voltarPara(idx) {
+    const novaTrilha = trilha.slice(0, idx + 1);
+    const termo = trilha[idx];
+    setTrilha(novaTrilha);
+    setPalavra(termo);
+    explorar(termo, novaTrilha);
   }
 
   const cores = ['#EEEDFE','#E1F5EE','#FAECE7','#FAEEDA','#FBEAF0','#E6F1FB','#EAF3DE','#FCF0E4','#EEF6FF','#F5EEFE','#E8F8F2','#FFF0EC'];
@@ -80,146 +97,140 @@ export default function Mapa() {
   const angulos = nos.map(function(_, i) { return (2 * Math.PI * i / total) - Math.PI / 2; });
 
   function abrirUrl(url) {
-    if (!url) return;
-    window.open(url, '_blank');
+    if (url && url.startsWith('http')) window.open(url, '_blank');
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', minHeight: '100vh', background: '#0a0a0a', color: '#fff' }}>
+    <div style={{ fontFamily: 'system-ui, sans-serif', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Head><title>Brainstorm Criativo</title></Head>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', borderBottom: '1px solid #1a1a1a' }}>
-        <span onClick={function() { router.push('/'); }} style={{ fontSize: '14px', fontWeight: '700', cursor: 'pointer', letterSpacing: '0.1em', color: '#fff' }}>BRAINSTORM</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid #141414', flexShrink: 0 }}>
+        <span onClick={function() { router.push('/'); }} style={{ fontSize: '13px', fontWeight: '700', cursor: 'pointer', letterSpacing: '0.12em', color: '#fff' }}>BRAINSTORM</span>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             value={palavra}
             onChange={function(e) { setPalavra(e.target.value); }}
-            onKeyDown={function(e) { if (e.key === 'Enter') explorar(palavra); }}
-            placeholder="Nova palavra..."
-            style={{ padding: '8px 16px', borderRadius: '20px', border: '1px solid #222', background: '#141414', color: '#fff', fontSize: '14px', outline: 'none', width: '200px' }}
+            onKeyDown={function(e) { if (e.key === 'Enter') { setTrilha([]); explorar(palavra, []); } }}
+            placeholder="Nova busca..."
+            style={{ padding: '7px 14px', borderRadius: '20px', border: '1px solid #1e1e1e', background: '#111', color: '#fff', fontSize: '13px', outline: 'none', width: '180px' }}
           />
-          <button onClick={function() { explorar(palavra); }}
-            style={{ padding: '8px 20px', borderRadius: '20px', background: '#C8FF00', color: '#000', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}>
-            Explorar
+          <button onClick={function() { setTrilha([]); explorar(palavra, []); }}
+            style={{ padding: '7px 18px', borderRadius: '20px', background: '#C8FF00', color: '#000', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '700' }}>
+            Ir
           </button>
           <button onClick={function() { inputRef.current.click(); }}
-            style={{ padding: '8px 16px', borderRadius: '20px', background: 'transparent', color: '#555', border: '1px solid #1e1e1e', cursor: 'pointer', fontSize: '13px' }}>
+            style={{ padding: '7px 14px', borderRadius: '20px', background: 'transparent', color: '#444', border: '1px solid #1a1a1a', cursor: 'pointer', fontSize: '12px' }}>
             + Briefing
           </button>
           <input ref={inputRef} type="file" accept=".pptx,.docx,.pdf,.txt" onChange={onArquivo} style={{ display: 'none' }} />
         </div>
       </div>
 
-      {historico.length > 0 && (
-        <div style={{ display: 'flex', gap: '6px', padding: '10px 32px', borderBottom: '1px solid #111', flexWrap: 'wrap' }}>
-          {historico.map(function(h, i) {
+      {trilha.length > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 28px', borderBottom: '1px solid #0f0f0f', flexShrink: 0, overflowX: 'auto' }}>
+          {trilha.map(function(t, i) {
+            const ativo = i === trilha.length - 1;
             return (
-              <button key={i} onClick={function() { setPalavra(h); explorar(h); }}
-                style={{ padding: '3px 12px', borderRadius: '20px', background: centro === h ? '#1a1a1a' : 'transparent', color: centro === h ? '#C8FF00' : '#444', border: '1px solid ' + (centro === h ? '#2a2a2a' : '#111'), cursor: 'pointer', fontSize: '12px', transition: 'all 0.15s' }}>
-                {h}
-              </button>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                {i > 0 && <span style={{ color: '#222', fontSize: '12px' }}>›</span>}
+                <button
+                  onClick={function() { if (!ativo) voltarPara(i); }}
+                  style={{ padding: '2px 10px', borderRadius: '12px', background: ativo ? '#C8FF00' : 'transparent', color: ativo ? '#000' : '#333', border: '1px solid ' + (ativo ? '#C8FF00' : '#1a1a1a'), cursor: ativo ? 'default' : 'pointer', fontSize: '11px', fontWeight: ativo ? '700' : '400', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+                  {t}
+                </button>
+              </div>
             );
           })}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', height: 'calc(100vh - 57px)' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 320px', overflow: 'hidden' }}>
 
-        <div style={{ position: 'relative', borderRight: '1px solid #111', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', borderRight: '1px solid #0f0f0f', overflow: 'hidden' }}>
 
-          {carregando && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ width: '32px', height: '32px', border: '2px solid #1a1a1a', borderTopColor: '#C8FF00', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              <p style={{ color: '#2a2a2a', fontSize: '13px' }}>{modoArquivo ? 'Lendo briefing...' : 'Gerando conexoes...'}</p>
+          {(carregando || animando) && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '14px', zIndex: 10 }}>
+              <div style={{ width: '28px', height: '28px', border: '2px solid #1a1a1a', borderTopColor: '#C8FF00', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              <p style={{ color: '#252525', fontSize: '12px' }}>{modoArquivo ? 'Lendo briefing...' : 'Gerando...'}</p>
             </div>
           )}
 
-          {!carregando && centro && (
+          {!carregando && !animando && centro && (
             <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
               {angulos.map(function(ang, i) {
                 const x2 = 50 + 36 * Math.cos(ang);
                 const y2 = 50 + 40 * Math.sin(ang);
-                return <line key={i} x1="50%" y1="50%" x2={x2 + '%'} y2={y2 + '%'} stroke="#1e1e1e" strokeWidth="1" strokeDasharray="4 3" />;
+                return <line key={i} x1="50%" y1="50%" x2={x2 + '%'} y2={y2 + '%'} stroke="#161616" strokeWidth="1" strokeDasharray="3 4" />;
               })}
             </svg>
           )}
 
-          {!carregando && centro && (
-            <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', padding: '14px 28px', background: '#0f0f0f', border: '1px solid #C8FF00', borderRadius: '32px', fontSize: '17px', fontWeight: '700', zIndex: 3, whiteSpace: 'nowrap', color: '#C8FF00', letterSpacing: '0.02em' }}>
+          {!carregando && !animando && centro && (
+            <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', padding: '13px 26px', background: '#0a0a0a', border: '1px solid #C8FF00', borderRadius: '32px', fontSize: '16px', fontWeight: '700', zIndex: 3, color: '#C8FF00', letterSpacing: '0.02em', whiteSpace: 'nowrap', maxWidth: '280px', textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
               {centro}
             </div>
           )}
 
-          {!carregando && nos.map(function(no, i) {
+          {!carregando && !animando && nos.map(function(no, i) {
             const ang = angulos[i];
             const x = 50 + 36 * Math.cos(ang);
             const y = 50 + 40 * Math.sin(ang);
             const temEspaco = no.includes(' ');
             return (
               <div key={i}
-                style={{ position: 'absolute', left: x + '%', top: y + '%', transform: 'translate(-50%,-50%)', padding: temEspaco ? '8px 14px' : '7px 16px', background: cores[i % cores.length], border: '1px solid ' + coresBorda[i % coresBorda.length], borderRadius: temEspaco ? '12px' : '20px', fontSize: temEspaco ? '12px' : '13px', fontWeight: '500', color: coresTexto[i % coresTexto.length], cursor: 'pointer', whiteSpace: 'nowrap', zIndex: 2, transition: 'transform 0.15s', maxWidth: '180px', textAlign: 'center', lineHeight: '1.4' }}
+                style={{ position: 'absolute', left: x + '%', top: y + '%', transform: 'translate(-50%,-50%)', padding: temEspaco ? '7px 13px' : '7px 15px', background: cores[i % cores.length], border: '1px solid ' + coresBorda[i % coresBorda.length], borderRadius: temEspaco ? '10px' : '20px', fontSize: temEspaco ? '11px' : '12px', fontWeight: '500', color: coresTexto[i % coresTexto.length], cursor: 'pointer', whiteSpace: 'nowrap', zIndex: 2, transition: 'transform 0.15s, box-shadow 0.15s', maxWidth: '200px', textAlign: 'center', lineHeight: '1.4', animation: 'fadeIn 0.4s ease' }}
                 onClick={function() { setPalavra(no); explorar(no); }}
-                onMouseEnter={function(e) { e.currentTarget.style.transform = 'translate(-50%,-50%) scale(1.08)'; }}
-                onMouseLeave={function(e) { e.currentTarget.style.transform = 'translate(-50%,-50%) scale(1)'; }}
+                onMouseEnter={function(e) { e.currentTarget.style.transform = 'translate(-50%,-50%) scale(1.08)'; e.currentTarget.style.boxShadow = '0 0 0 2px ' + coresBorda[i % coresBorda.length] + '44'; }}
+                onMouseLeave={function(e) { e.currentTarget.style.transform = 'translate(-50%,-50%) scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
               >
                 {no}
               </div>
             );
           })}
 
-          {!carregando && !centro && (
+          {!carregando && !animando && !centro && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ color: '#1e1e1e', fontSize: '14px' }}>Explore uma palavra para comecar</p>
+              <p style={{ color: '#1a1a1a', fontSize: '14px' }}>Explore uma palavra para comecar</p>
             </div>
           )}
         </div>
 
-        <div style={{ overflowY: 'auto', padding: '20px 16px', background: '#0d0d0d' }}>
-          <p style={{ fontSize: '11px', color: '#2a2a2a', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '16px', paddingLeft: '4px' }}>
-            {cases.length > 0 ? 'Referencias criativas — ' + cases.length + ' cases' : 'Cases aparecem apos busca'}
+        <div style={{ overflowY: 'auto', padding: '18px 14px', background: '#080808', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <p style={{ fontSize: '10px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '12px', paddingLeft: '2px' }}>
+            {cases.length > 0 ? cases.length + ' referencias criativas' : 'Referencias aparecem apos busca'}
           </p>
 
           {cases.length === 0 && !carregando && (
-            <p style={{ color: '#1e1e1e', fontSize: '13px', paddingLeft: '4px' }}>Explore uma palavra para ver cases publicitarios relevantes.</p>
+            <p style={{ color: '#181818', fontSize: '12px', paddingLeft: '2px' }}>Explore para ver cases publicitarios.</p>
           )}
 
           {cases.map(function(c, i) {
             const temUrl = c.url && c.url.startsWith('http');
+            const aberto = caseAtivo === i;
             return (
-              <div key={i}
-                style={{ border: '1px solid ' + (caseAtivo === i ? '#C8FF00' : '#161616'), borderRadius: '12px', marginBottom: '8px', overflow: 'hidden', transition: 'border-color 0.2s' }}>
-                <div
-                  onClick={function() { setCaseAtivo(caseAtivo === i ? null : i); }}
-                  style={{ padding: '12px 14px', cursor: 'pointer', background: caseAtivo === i ? '#0c0e00' : 'transparent' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '13px', fontWeight: '600', margin: 0, color: '#fff' }}>{c.marca}</p>
-                      <p style={{ fontSize: '11px', color: '#3a3a3a', margin: '3px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.campanha}</p>
-                    </div>
-                    <span style={{ fontSize: '10px', color: caseAtivo === i ? '#C8FF00' : '#252525', flexShrink: 0, marginTop: '2px' }}>
-                      {caseAtivo === i ? 'fechar' : 'ver'}
-                    </span>
+              <div key={i} style={{ border: '1px solid ' + (aberto ? '#2a2800' : '#111'), borderRadius: '10px', overflow: 'hidden', transition: 'border-color 0.2s', marginBottom: '6px' }}>
+                <div onClick={function() { setCaseAtivo(aberto ? null : i); }}
+                  style={{ padding: '11px 12px', cursor: 'pointer', background: aberto ? '#0c0e00' : 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '12px', fontWeight: '600', margin: 0, color: aberto ? '#C8FF00' : '#ccc' }}>{c.marca}</p>
+                    <p style={{ fontSize: '10px', color: '#2e2e2e', margin: '3px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campanha}</p>
                   </div>
+                  <span style={{ fontSize: '9px', color: aberto ? '#C8FF00' : '#222', flexShrink: 0 }}>{aberto ? '▲' : '▼'}</span>
                 </div>
-
-                {caseAtivo === i && (
-                  <div style={{ padding: '0 14px 14px', background: '#0c0e00' }}>
-                    <p style={{ fontSize: '12px', color: '#555', lineHeight: '1.7', margin: '0 0 12px', borderTop: '1px solid #161600', paddingTop: '12px' }}>
+                {aberto && (
+                  <div style={{ padding: '0 12px 12px', background: '#0c0e00' }}>
+                    <p style={{ fontSize: '11px', color: '#4a4a4a', lineHeight: '1.7', margin: '0 0 10px', borderTop: '1px solid #141400', paddingTop: '10px' }}>
                       {c.insight}
                     </p>
-                    {temUrl && (
-                      <button
-                        onClick={function() { abrirUrl(c.url); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', background: 'transparent', border: '1px solid #C8FF00', color: '#C8FF00', cursor: 'pointer', fontSize: '12px', fontWeight: '600', transition: 'background 0.15s' }}
-                        onMouseEnter={function(e) { e.currentTarget.style.background = '#C8FF0015'; }}
-                        onMouseLeave={function(e) { e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        Ver material completo
-                        <span style={{ fontSize: '10px' }}>↗</span>
+                    {temUrl ? (
+                      <button onClick={function() { abrirUrl(c.url); }}
+                        style={{ padding: '6px 12px', borderRadius: '7px', background: 'transparent', border: '1px solid #C8FF00', color: '#C8FF00', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}
+                        onMouseEnter={function(e) { e.currentTarget.style.background = '#C8FF0012'; }}
+                        onMouseLeave={function(e) { e.currentTarget.style.background = 'transparent'; }}>
+                        Ver material ↗
                       </button>
-                    )}
-                    {!temUrl && (
-                      <p style={{ fontSize: '11px', color: '#2a2a2a', margin: 0 }}>Busque no Google: {c.marca} {c.campanha}</p>
+                    ) : (
+                      <p style={{ fontSize: '10px', color: '#222', margin: 0 }}>Busque: {c.marca} {c.campanha}</p>
                     )}
                   </div>
                 )}
@@ -229,7 +240,7 @@ export default function Mapa() {
         </div>
       </div>
 
-      <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
+      <style>{'@keyframes spin { to { transform: rotate(360deg); } } @keyframes fadeIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.92); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }'}</style>
     </div>
   );
 }
