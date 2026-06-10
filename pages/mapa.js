@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
@@ -30,29 +30,19 @@ export default function Mapa() {
     }
   }, [router.query.q]);
 
-  function novoId() {
-    idCounter.current += 1;
-    return idCounter.current;
-  }
+  function novoId() { idCounter.current += 1; return idCounter.current; }
 
-  function atualizarNos(novosNos) {
-    nosRef.current = novosNos;
-    setNos(novosNos);
-  }
-
-  function atualizarConexoes(novasConexoes) {
-    conexoesRef.current = novasConexoes;
-    setConexoes(novasConexoes);
-  }
+  function atualizarNos(n) { nosRef.current = n; setNos(n); }
+  function atualizarConexoes(c) { conexoesRef.current = c; setConexoes(c); }
 
   async function iniciarMapa(termo) {
     const id = novoId();
-    const noRaiz = { id, texto: termo, x: CX, y: CY, raiz: true, gerado: false };
-    atualizarNos([noRaiz]);
+    const raiz = { id, texto: termo, x: CX, y: CY, raiz: true, gerado: false };
+    atualizarNos([raiz]);
     atualizarConexoes([]);
     setCases([]);
     setCaseAtivo(null);
-    await expandirNo(noRaiz);
+    await expandirNo(raiz);
   }
 
   async function expandirNo(noOrigem) {
@@ -66,38 +56,28 @@ export default function Mapa() {
       const data = await res.json();
       const palavras = data.palavras || [];
       const casesNovos = data.cases || [];
-
       const total = palavras.length;
       const raio = 300;
       const anguloBase = Math.random() * Math.PI * 2;
 
-      const nosFilhos = palavras.map(function(p, i) {
+      const filhos = palavras.map(function(p, i) {
         const ang = anguloBase + (2 * Math.PI * i / total);
         const jitter = (Math.random() - 0.5) * 40;
         return {
-          id: novoId(),
-          texto: p,
-          x: Math.max(100, Math.min(W - 100, noOrigem.x + (raio + jitter) * Math.cos(ang))),
-          y: Math.max(100, Math.min(H - 100, noOrigem.y + (raio + jitter) * Math.sin(ang))),
-          raiz: false,
-          gerado: false,
-          pai: noOrigem.id
+          id: novoId(), texto: p,
+          x: Math.max(120, Math.min(W - 120, noOrigem.x + (raio + jitter) * Math.cos(ang))),
+          y: Math.max(80, Math.min(H - 80, noOrigem.y + (raio + jitter) * Math.sin(ang))),
+          raiz: false, gerado: false, pai: noOrigem.id
         };
       });
 
-      const novasConexoes = nosFilhos.map(function(filho) {
-        return { de: noOrigem.id, para: filho.id };
-      });
-
+      const novasConexoes = filhos.map(function(f) { return { de: noOrigem.id, para: f.id }; });
       const nosAtualizados = nosRef.current.map(function(n) {
-        if (n.id === noOrigem.id) return { ...n, gerado: true };
-        return n;
-      }).concat(nosFilhos);
-
-      const conexoesAtualizadas = conexoesRef.current.concat(novasConexoes);
+        return n.id === noOrigem.id ? { ...n, gerado: true } : n;
+      }).concat(filhos);
 
       atualizarNos(nosAtualizados);
-      atualizarConexoes(conexoesAtualizadas);
+      atualizarConexoes(conexoesRef.current.concat(novasConexoes));
       setCases(casesNovos);
       setCaseAtivo(null);
       setNoAtivo(noOrigem.id);
@@ -106,17 +86,13 @@ export default function Mapa() {
         const el = document.getElementById('no-' + noOrigem.id);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
       }, 100);
-
     } catch(e) {}
     setCarregandoId(null);
   }
 
   function clicarNo(no) {
     if (carregandoId) return;
-    if (no.gerado) {
-      setNoAtivo(no.id);
-      return;
-    }
+    if (no.gerado) { setNoAtivo(no.id); return; }
     setNoAtivo(no.id);
     expandirNo(no);
   }
@@ -138,47 +114,53 @@ export default function Mapa() {
   nos.forEach(function(n) { nosMap[n.id] = n; });
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", height: '100vh', background: '#050505', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", height: '100vh', background: '#050505', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <Head>
         <title>Brainstorm Criativo</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
       </Head>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid #ffffff08', flexShrink: 0, background: '#050505', zIndex: 10 }}>
-        <span onClick={function() { router.push('/'); }} style={{ fontSize: '12px', fontWeight: '700', cursor: 'pointer', letterSpacing: '0.15em', color: '#ffffff30' }}>BRAINSTORM</span>
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+        <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '40vw', height: '40vw', borderRadius: '50%', background: 'radial-gradient(circle, #C8FF0010 0%, transparent 70%)', animation: 'blob1 8s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', bottom: '-10%', right: '30%', width: '35vw', height: '35vw', borderRadius: '50%', background: 'radial-gradient(circle, #C8FF0008 0%, transparent 70%)', animation: 'blob2 11s ease-in-out infinite' }} />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid #ffffff08', flexShrink: 0, background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(20px)' }}>
+        <span onClick={function() { router.push('/'); }} style={{ fontSize: '12px', fontWeight: '700', cursor: 'pointer', letterSpacing: '0.15em', color: '#ffffff25' }}>BRAINSTORM</span>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input
-            value={palavra}
-            onChange={function(e) { setPalavra(e.target.value); }}
-            onKeyDown={function(e) { if (e.key === 'Enter') novaBusca(); }}
-            placeholder="Nova busca..."
-            style={{ padding: '7px 14px', borderRadius: '20px', border: '1px solid #ffffff10', background: '#ffffff06', color: '#fff', fontSize: '13px', outline: 'none', width: '180px', fontFamily: 'inherit' }}
-          />
-          <button onClick={novaBusca}
-            style={{ padding: '7px 20px', borderRadius: '20px', background: '#C8FF00', color: '#000', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '700', fontFamily: 'inherit' }}>
-            Ir
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', background: '#ffffff06', border: '1px solid #ffffff10', borderRadius: '20px', padding: '4px 4px 4px 16px', gap: '6px' }}>
+            <input
+              value={palavra}
+              onChange={function(e) { setPalavra(e.target.value); }}
+              onKeyDown={function(e) { if (e.key === 'Enter') novaBusca(); }}
+              placeholder="Nova busca..."
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '13px', width: '160px', fontFamily: 'inherit' }}
+            />
+            <button onClick={novaBusca}
+              style={{ padding: '6px 18px', borderRadius: '16px', background: '#C8FF00', color: '#000', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '700', fontFamily: 'inherit' }}>
+              Ir
+            </button>
+          </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 300px', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'grid', gridTemplateColumns: '1fr 320px', overflow: 'hidden' }}>
 
         <div style={{ overflow: 'auto', position: 'relative' }}>
           <svg width={W} height={H} style={{ display: 'block' }}>
             <rect width={W} height={H} fill="#050505" />
 
             {conexoes.map(function(c, i) {
-              const origem = nosMap[c.de];
-              const destino = nosMap[c.para];
-              if (!origem || !destino) return null;
+              const o = nosMap[c.de];
+              const d = nosMap[c.para];
+              if (!o || !d) return null;
               const ativo = noAtivo === c.de || noAtivo === c.para;
               return (
                 <line key={i}
-                  x1={origem.x} y1={origem.y}
-                  x2={destino.x} y2={destino.y}
-                  stroke={ativo ? '#C8FF0035' : '#ffffff07'}
+                  x1={o.x} y1={o.y} x2={d.x} y2={d.y}
+                  stroke={ativo ? '#C8FF0040' : '#ffffff06'}
                   strokeWidth={ativo ? 1 : 0.5}
-                  strokeDasharray={ativo ? 'none' : '2 6'}
+                  strokeDasharray={ativo ? 'none' : '2 7'}
                 />
               );
             })}
@@ -188,46 +170,34 @@ export default function Mapa() {
               const ativo = noAtivo === no.id;
               const chars = no.texto.length;
               const largura = no.raiz
-                ? Math.min(Math.max(chars * 9 + 40, 100), 260)
-                : Math.min(Math.max(chars * 7.2 + 28, 70), 200);
-              const altura = (!no.raiz && chars > 18) ? 52 : 36;
+                ? Math.min(Math.max(chars * 9 + 48, 120), 280)
+                : Math.min(Math.max(chars * 7.5 + 32, 80), 210);
+              const altura = (!no.raiz && chars > 20) ? 54 : 36;
 
               return (
-                <g key={no.id} id={'no-' + no.id}
-                  onClick={function() { clicarNo(no); }}
-                  style={{ cursor: carregandoId ? 'wait' : 'pointer' }}>
-
+                <g key={no.id} id={'no-' + no.id} onClick={function() { clicarNo(no); }} style={{ cursor: carregandoId ? 'wait' : 'pointer' }}>
                   {estaCarregando && (
-                    <circle cx={no.x} cy={no.y} r={largura / 2 + 12}
-                      fill="none" stroke="#C8FF00" strokeWidth="0.8" strokeOpacity="0.3"
-                      style={{ animation: 'ripple 1.4s ease-out infinite' }} />
+                    <circle cx={no.x} cy={no.y} r="50" fill="none" stroke="#C8FF00" strokeWidth="0.6" strokeOpacity="0.2"
+                      style={{ animation: 'ripple 1.6s ease-out infinite' }} />
                   )}
-
                   <rect
                     x={no.x - largura / 2} y={no.y - altura / 2}
                     width={largura} height={altura}
-                    rx={no.raiz ? 24 : chars > 18 ? 10 : 18}
-                    fill={no.raiz ? '#0d0d0d' : '#0a0a0a'}
-                    stroke={no.raiz ? '#C8FF00' : ativo ? '#C8FF0055' : no.gerado ? '#ffffff12' : '#ffffff08'}
+                    rx={no.raiz ? 26 : chars > 20 ? 10 : 18}
+                    fill={no.raiz ? '#111' : ativo ? '#0f0f0f' : '#080808'}
+                    stroke={no.raiz ? '#C8FF00' : ativo ? '#C8FF0060' : no.gerado ? '#ffffff18' : '#ffffff0a'}
                     strokeWidth={no.raiz ? 1.5 : ativo ? 1 : 0.5}
                   />
-
-                  <foreignObject
-                    x={no.x - largura / 2 + 6}
-                    y={no.y - altura / 2}
-                    width={largura - 12}
-                    height={altura}>
-                    <div xmlns="http://www.w3.org/1999/xhtml"
-                      style={{
-                        width: '100%', height: '100%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: no.raiz ? '14px' : '11px',
-                        fontWeight: no.raiz ? '700' : '400',
-                        color: no.raiz ? '#C8FF00' : ativo ? '#ffffff' : '#ffffff55',
-                        textAlign: 'center', lineHeight: '1.3',
-                        fontFamily: 'Inter, system-ui, sans-serif',
-                        wordBreak: 'break-word', padding: '2px'
-                      }}>
+                  <foreignObject x={no.x - largura / 2 + 8} y={no.y - altura / 2} width={largura - 16} height={altura}>
+                    <div xmlns="http://www.w3.org/1999/xhtml" style={{
+                      width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: no.raiz ? '14px' : '11px',
+                      fontWeight: no.raiz ? '700' : ativo ? '500' : '400',
+                      color: no.raiz ? '#C8FF00' : ativo ? '#fff' : '#ffffff60',
+                      textAlign: 'center', lineHeight: '1.35',
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      wordBreak: 'break-word', padding: '2px'
+                    }}>
                       {no.texto}
                     </div>
                   </foreignObject>
@@ -237,50 +207,69 @@ export default function Mapa() {
           </svg>
         </div>
 
-        <div style={{ overflowY: 'auto', padding: '16px 12px', background: '#060606', borderLeft: '1px solid #ffffff05' }}>
-          <p style={{ fontSize: '10px', color: '#ffffff12', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '12px' }}>
-            {cases.length > 0 ? cases.length + ' referencias criativas' : 'Clique em um no para ver cases'}
-          </p>
-          {cases.length === 0 && (
-            <p style={{ color: '#ffffff08', fontSize: '12px', lineHeight: '1.6' }}>Clique em qualquer palavra para expandir o mapa e ver referencias publicitarias.</p>
-          )}
-          {cases.map(function(c, i) {
-            const aberto = caseAtivo === i;
-            const temUrl = c.url && c.url.startsWith('http');
-            return (
-              <div key={i} style={{ border: '1px solid ' + (aberto ? '#C8FF0025' : '#ffffff06'), borderRadius: '10px', marginBottom: '6px', overflow: 'hidden', transition: 'border-color 0.2s' }}>
-                <div onClick={function() { setCaseAtivo(aberto ? null : i); }}
-                  style={{ padding: '10px 12px', cursor: 'pointer', background: aberto ? '#0c0e00' : 'transparent', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '12px', fontWeight: '600', margin: 0, color: aberto ? '#C8FF00' : '#ffffff40' }}>{c.marca}</p>
-                    <p style={{ fontSize: '10px', color: '#ffffff12', margin: '3px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campanha}</p>
+        <div style={{ overflowY: 'auto', background: 'rgba(6,6,6,0.9)', backdropFilter: 'blur(20px)', borderLeft: '1px solid #ffffff06', display: 'flex', flexDirection: 'column' }}>
+
+          <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #ffffff05' }}>
+            <p style={{ fontSize: '10px', color: '#ffffff20', textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0 }}>
+              {cases.length > 0 ? cases.length + ' referencias criativas' : 'Clique em um no'}
+            </p>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 20px' }}>
+            {cases.length === 0 && (
+              <p style={{ color: '#ffffff12', fontSize: '12px', lineHeight: '1.8', marginTop: '8px' }}>
+                Clique em qualquer palavra do mapa para expandir e ver cases publicitarios de referencia.
+              </p>
+            )}
+
+            {cases.map(function(c, i) {
+              const aberto = caseAtivo === i;
+              const temUrl = c.url && c.url.startsWith('http');
+              return (
+                <div key={i} style={{
+                  border: '1px solid ' + (aberto ? '#C8FF0030' : '#ffffff0a'),
+                  borderRadius: '12px', marginBottom: '8px', overflow: 'hidden',
+                  transition: 'border-color 0.2s, background 0.2s',
+                  background: aberto ? 'rgba(200,255,0,0.04)' : 'rgba(255,255,255,0.02)'
+                }}>
+                  <div onClick={function() { setCaseAtivo(aberto ? null : i); }}
+                    style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '13px', fontWeight: '600', margin: 0, color: aberto ? '#C8FF00' : '#fff' }}>{c.marca}</p>
+                      <p style={{ fontSize: '11px', color: '#ffffff35', margin: '3px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campanha}</p>
+                    </div>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid ' + (aberto ? '#C8FF00' : '#ffffff12'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
+                      <span style={{ fontSize: '8px', color: aberto ? '#C8FF00' : '#ffffff30', lineHeight: 1 }}>{aberto ? '▲' : '▼'}</span>
+                    </div>
                   </div>
-                  <span style={{ fontSize: '9px', color: aberto ? '#C8FF00' : '#ffffff12', flexShrink: 0 }}>{aberto ? '▲' : '▼'}</span>
+
+                  {aberto && (
+                    <div style={{ padding: '0 14px 14px' }}>
+                      <div style={{ height: '1px', background: 'linear-gradient(to right, #C8FF0020, transparent)', marginBottom: '12px' }} />
+                      <p style={{ fontSize: '12px', color: '#ffffff60', lineHeight: '1.75', margin: '0 0 14px' }}>{c.insight}</p>
+                      {temUrl ? (
+                        <button onClick={function() { abrirUrl(c.url); }}
+                          onMouseEnter={function(e) { e.currentTarget.style.background = '#C8FF00'; e.currentTarget.style.color = '#000'; }}
+                          onMouseLeave={function(e) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#C8FF00'; }}
+                          style={{ padding: '7px 14px', borderRadius: '8px', background: 'transparent', border: '1px solid #C8FF00', color: '#C8FF00', cursor: 'pointer', fontSize: '11px', fontWeight: '700', fontFamily: 'inherit', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          Ver material <span style={{ fontSize: '10px' }}>↗</span>
+                        </button>
+                      ) : (
+                        <p style={{ fontSize: '10px', color: '#ffffff15', margin: 0 }}>Busque: {c.marca} {c.campanha}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {aberto && (
-                  <div style={{ padding: '0 12px 12px', background: '#0c0e00' }}>
-                    <p style={{ fontSize: '11px', color: '#ffffff22', lineHeight: '1.7', margin: '0 0 10px', borderTop: '1px solid #ffffff05', paddingTop: '10px' }}>{c.insight}</p>
-                    {temUrl ? (
-                      <button onClick={function() { abrirUrl(c.url); }}
-                        onMouseEnter={function(e) { e.currentTarget.style.background = '#C8FF0015'; }}
-                        onMouseLeave={function(e) { e.currentTarget.style.background = 'transparent'; }}
-                        style={{ padding: '6px 12px', borderRadius: '7px', background: 'transparent', border: '1px solid #C8FF00', color: '#C8FF00', cursor: 'pointer', fontSize: '11px', fontWeight: '600', fontFamily: 'inherit' }}>
-                        Ver material ↗
-                      </button>
-                    ) : (
-                      <p style={{ fontSize: '10px', color: '#ffffff08', margin: 0 }}>Busque: {c.marca} {c.campanha}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes ripple { 0% { r: 20; opacity: 0.5; } 100% { r: 60; opacity: 0; } }
+        @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(2%,4%) scale(1.05)} }
+        @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-3%,-2%) scale(1.08)} }
+        @keyframes ripple { 0%{r:20;opacity:0.6} 100%{r:70;opacity:0} }
         input::placeholder { color: #ffffff18; }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 3px; height: 3px; }
