@@ -7,15 +7,17 @@ export default async function handler(req, res) {
 
 Para a palavra/conceito: "${palavra}"
 
-Gere exatamente 8 palavras associadas. Misture: associações óbvias, sensoriais, emocionais, contraintuitivas e metafóricas. Inclua pelo menos 2 conexões inesperadas que fujam do óbvio e provoquem insights criativos.
+Gere exatamente 12 palavras associadas. Misture: associações óbvias, sensoriais, emocionais, contraintuitivas e metafóricas. Inclua pelo menos 4 conexões completamente inesperadas que fujam do óbvio e provoquem insights criativos genuínos. Pense como um redator criativo premiado.
 
-Também gere 3 cases reais de campanhas publicitárias de marcas que trabalharam criativamente com "${palavra}" ou conceitos muito próximos.
+Também gere 5 cases reais de campanhas publicitárias de marcas que trabalharam criativamente com "${palavra}" ou conceitos muito próximos. Priorize cases inovadores e premiados.
 
 Responda SOMENTE em JSON válido, sem markdown, neste formato exato:
 {
-  "palavras": ["palavra1","palavra2","palavra3","palavra4","palavra5","palavra6","palavra7","palavra8"],
+  "palavras": ["palavra1","palavra2","palavra3","palavra4","palavra5","palavra6","palavra7","palavra8","palavra9","palavra10","palavra11","palavra12"],
   "cases": [
-    {"marca":"Nome da Marca","campanha":"Nome da Campanha (Ano)","insight":"Uma frase sobre o que a campanha fez de interessante com esse conceito."},
+    {"marca":"Nome da Marca","campanha":"Nome da Campanha (Ano)","insight":"Duas frases explicando o que a campanha fez de interessante e por que é uma referência criativa relevante."},
+    {"marca":"...","campanha":"...","insight":"..."},
+    {"marca":"...","campanha":"...","insight":"..."},
     {"marca":"...","campanha":"...","insight":"..."},
     {"marca":"...","campanha":"...","insight":"..."}
   ]
@@ -31,7 +33,7 @@ Responda SOMENTE em JSON válido, sem markdown, neste formato exato:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        max_tokens: 1500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
